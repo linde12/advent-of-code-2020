@@ -1,68 +1,36 @@
 use std::collections::HashSet;
 
-// After making the initial solution and seeing that both tasks
-// only cared about the trees (and not the free spaces) i've
-// refactored to use a HashSet.
-// I've also made several other improvements:
-// - Removed unnecessary `step` closure, now i instead pass the
-// increment values
-// - Use `.chars()` to iterate over chars... D'oh.
-// - Use `.product()` over `fold` to get the product for solve_2
-// - Get rid of `Terrain` enum. Not needed when for the HashSet
-// implementation.
+// Yet another solution. Possibly the simplest, yet
+// least robust. Using iterators and `nth` to index
+// into the string without converting to HashSet or
+// Vec.
 
 fn main() {
     let input = include_str!("./input.txt").trim();
-    let (map, width, height) = parse_map(input);
 
     // part 1
-    let result = solve_1(&map, width, height, 3, 1);
-    println!("part 1 solution: {}", result);
+    if let Some(result) = solve_1(&input, 3, 1) {
+        println!("part 1 solution: {}", result);
+    } else {
+        println!("unable to find solution to part 1, check input");
+    }
 
     // part 2
-    let result = solve_2(&map, width, height);
+    let result = solve_2(&input);
     println!("part 2 solution: {}", result);
 }
 
-fn parse_map(map_str: &str) -> (HashSet<(usize, usize)>, usize, usize) {
-    let map: HashSet<(usize, usize)> = map_str
-        .lines()
-        .enumerate()
-        .flat_map(|(y, line)| {
-            line.chars()
-                .enumerate()
-                .filter_map(|(x, ch)| match ch {
-                    '#' => Some((x, y)),
-                    _ => None,
-                })
-                .collect::<HashSet<(usize, usize)>>()
-        })
-        .collect();
+fn solve_1(map: &str, inc_x: usize, inc_y: usize) -> Option<usize> {
+    let height = map.lines().count();
+    // assume all lines have the same length
+    let width = map.lines().nth(0).map(|line| line.len())?;
 
-    let height = map_str.lines().count();
-    let width = map_str
-        .lines()
-        .nth(0)
-        .map(|line| line.len())
-        .expect("Unable to get map width");
-
-    (map, width, height)
-}
-
-fn solve_1(
-    map: &HashSet<(usize, usize)>,
-    map_width: usize,
-    map_height: usize,
-    inc_x: usize,
-    inc_y: usize,
-) -> usize {
     let mut trees_encountered = 0;
     let (mut x, mut y) = (inc_x, inc_y);
 
-    while y < map_height {
-        // Check what we landed on
-        let wrapped_x = x % map_width;
-        if map.contains(&(wrapped_x, y)) {
+    while y < height {
+        let line = map.lines().nth(y)?;
+        if line.chars().nth(x % width)? == '#' {
             trees_encountered += 1;
         }
 
@@ -71,44 +39,34 @@ fn solve_1(
         y += inc_y;
     }
 
-    trees_encountered
+    Some(trees_encountered)
 }
 
-fn solve_2(map: &HashSet<(usize, usize)>, map_width: usize, map_height: usize) -> usize {
+fn solve_2(map: &str) -> usize {
     vec![
-        solve_1(map, map_width, map_height, 1, 1),
-        solve_1(map, map_width, map_height, 3, 1),
-        solve_1(map, map_width, map_height, 5, 1),
-        solve_1(map, map_width, map_height, 7, 1),
-        solve_1(map, map_width, map_height, 1, 2),
+        solve_1(map, 1, 1),
+        solve_1(map, 3, 1),
+        solve_1(map, 5, 1),
+        solve_1(map, 7, 1),
+        solve_1(map, 1, 2),
     ]
-    .iter()
+    .into_iter()
+    .filter_map(|x| x)
     .product()
-}
-
-#[test]
-fn test_parse_map() {
-    let input = include_str!("./input_test.txt");
-    let (map, _, _) = parse_map(input);
-    assert_eq!(map.contains(&(3, 1)), false);
-    assert_eq!(map.contains(&(4, 1)), true);
-    assert_eq!(map.contains(&(5, 1)), false);
 }
 
 #[test]
 fn test_1() {
     let input = include_str!("./input_test.txt");
-    let (map, width, height) = parse_map(input);
-    let result = solve_1(&map, width, height, 3, 1);
-    assert_eq!(result, 7);
-    let result = solve_1(&map, width, height, 1, 1);
-    assert_eq!(result, 2);
+    let result = solve_1(&input, 3, 1);
+    assert_eq!(result, Some(7));
+    let result = solve_1(&input, 1, 1);
+    assert_eq!(result, Some(2));
 }
 
 #[test]
 fn test_2() {
     let input = include_str!("./input_test.txt");
-    let (map, width, height) = parse_map(input);
-    let result = solve_2(&map, width, height);
+    let result = solve_2(&input);
     assert_eq!(result, 336);
 }
