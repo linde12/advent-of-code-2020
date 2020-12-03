@@ -1,5 +1,5 @@
 fn main() {
-    let input = include_str!("./2.txt").trim();
+    let input = include_str!("./input.txt").trim();
     let inputs: Vec<(&str, &str)> = input
         .lines()
         .filter_map(|line| {

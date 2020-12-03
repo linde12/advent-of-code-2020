@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 fn main() {
-    let input = include_str!("./1.txt").trim();
+    let input = include_str!("./input.txt").trim();
     let numbers: HashSet<i32> = input.lines().map(|s| s.parse().expect("input is not all numbers")).collect();
 
     // part 1
