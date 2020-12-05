@@ -1,12 +1,15 @@
+#![feature(trait_alias)]
 use std::collections::HashMap;
 
+trait ValidatorFn = Fn(&HashMap<&str, &str>) -> bool;
+
 #[derive(Debug)]
-struct Passport<'a, F: Fn(&HashMap<&'a str, &'a str>) -> bool> {
+struct Passport<'a, F: ValidatorFn> {
     entries: HashMap<&'a str, &'a str>,
     validator: F,
 }
 
-impl<'a, F: Fn(&HashMap<&'a str, &'a str>) -> bool> Passport<'a, F> {
+impl<'a, F: ValidatorFn> Passport<'a, F> {
     fn new(raw: &'a str, validator: F) -> Passport<'a, F> {
         let entries = raw
             .split_whitespace()
