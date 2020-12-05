@@ -1,119 +1,95 @@
 use std::collections::HashMap;
 
+#[derive(Debug)]
+struct Passport<'a, F: Fn(&HashMap<&'a str, &'a str>) -> bool> {
+    entries: HashMap<&'a str, &'a str>,
+    validator: F,
+}
+
+impl<'a, F: Fn(&HashMap<&'a str, &'a str>) -> bool> Passport<'a, F> {
+    fn new(raw: &'a str, validator: F) -> Passport<'a, F> {
+        let entries = raw
+            .split_whitespace()
+            .filter_map(|kv| {
+                let kv: Vec<&str> = kv.split(":").collect();
+                let key = kv.iter().nth(0)?;
+                if let Some(value) = kv.iter().nth(1) {
+                    Some((*key, *value))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Self { entries, validator }
+    }
+
+    fn is_valid(&self) -> bool {
+        (self.validator)(&self.entries)
+    }
+}
+
 fn main() {
     let input = include_str!("./input.txt").trim();
-    let passports = parse_passports(input);
 
     // part 1
-    let result = solve_1(&passports);
+    let result = solve_1(&input);
     println!("part 1 solution: {}", result);
 
     // part 2
-    let result = solve_2(&passports);
+    let result = solve_2(&input);
     println!("part 2 solution: {}", result);
 }
 
-/// Parses a passport batch file into a vector of hashmaps.
-fn parse_passports(input: &str) -> Vec<HashMap<String, String>> {
-    input
+fn solve_1(input: &str) -> usize {
+    let validate = |map: &HashMap<&str, &str>| {
+        map.contains_key(&"ecl") && // Eye color
+            map.contains_key(&"pid") && // Passport ID
+            map.contains_key(&"eyr") && // Expiration year
+            map.contains_key(&"hcl") && // Hair color
+            map.contains_key(&"byr") && // Birth year
+            map.contains_key(&"iyr") && // Issue year
+            map.contains_key(&"hgt") // Height
+    };
+
+    // Passport::new(&"abc", validate);
+    let passports: Vec<Passport<_>> = input
         .split("\n\n")
-        .map(|passport| {
-            let passport = passport.replace('\n', " ");
-            let mut map = HashMap::new();
+        .map(|raw_passport| Passport::new(raw_passport, validate))
+        .collect();
 
-            let key_values: Vec<(String, String)> = passport
-                .trim()
-                .split(" ")
-                .filter_map(|kv| {
-                    let kv: Vec<String> = kv.split(":").map(|s| s.to_owned()).collect();
-
-                    let mut iter = kv.into_iter();
-                    if let Some(key) = iter.next() {
-                        if let Some(value) = iter.next() {
-                            Some((key.to_string(), value))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            key_values.into_iter().for_each(|(key, value)| {
-                map.insert(key.to_string(), value);
-            });
-            map
-        })
-        .collect()
+    passports.iter().filter(|p| p.is_valid()).count()
 }
 
-/// Filters out all passports that don't contain all values and returns
-/// a count of valid passports.
-fn solve_1(passports: &Vec<HashMap<String, String>>) -> usize {
-    passports
-        .iter()
-        .filter(|passport| {
-            // Check whether this passport contains all required fields
-            vec![
-                passport.get("ecl"),
-                passport.get("pid"),
-                passport.get("eyr"),
-                passport.get("hcl"),
-                passport.get("byr"),
-                passport.get("iyr"),
-                passport.get("hgt"),
-            ]
-            .iter()
-            .all(|opt| opt.is_some())
-        })
-        .count()
-}
+fn solve_2(input: &str) -> usize {
+    let validate = |map: &HashMap<&str, &str>| {
+        let has_all_keys = map.contains_key(&"ecl") && // Eye color
+            map.contains_key(&"pid") && // Passport ID
+            map.contains_key(&"eyr") && // Expiration year
+            map.contains_key(&"hcl") && // Hair color
+            map.contains_key(&"byr") && // Birth year
+            map.contains_key(&"iyr") && // Issue year
+            map.contains_key(&"hgt"); // Height
 
-/// Filters out all passports that don't contain all values OR
-/// don't pass their respective validation requirement. Returns
-/// a count of valid passports.
-fn solve_2(passports: &Vec<HashMap<String, String>>) -> usize {
-    passports
-        .iter()
-        .filter(|passport| {
-            // Map which value should be validated by which function
-            let entries: Vec<&String> = vec![
-                passport.get("ecl"), // Eye color
-                passport.get("pid"), // Passport ID
-                passport.get("eyr"), // Expiration year
-                passport.get("hcl"), // Hair color
-                passport.get("byr"), // Birth year
-                passport.get("iyr"), // Issue year
-                passport.get("hgt"), // Height
-            ]
-            .iter()
-            .filter_map(|entry| *entry)
-            .collect();
+        if !has_all_keys {
+            return false;
+        }
 
-            // If there aren't still seven keys after we've filtered away `None`-values then that
-            // means that some of the required keys are missing and the passport is invalid
-            if entries.len() != 7 {
-                return false;
-            }
+        validate_eye_color(map.get(&"ecl").unwrap_or(&""))
+            && validate_passport_id(map.get(&"pid").unwrap_or(&""))
+            && validate_expiration(map.get(&"eyr").unwrap_or(&""))
+            && validate_hair_color(map.get(&"hcl").unwrap_or(&""))
+            && validate_birth(map.get(&"byr").unwrap_or(&""))
+            && validate_issue(map.get(&"iyr").unwrap_or(&""))
+            && validate_height(map.get(&"hgt").unwrap_or(&""))
+    };
 
-            // Validators to be zipped into validation_map
-            let validators: Vec<fn(&str) -> bool> = vec![
-                validate_eye_color,
-                validate_passport_id,
-                validate_expiration,
-                validate_hair_color,
-                validate_birth,
-                validate_issue,
-                validate_height,
-            ];
+    let passports: Vec<Passport<_>> = input
+        .split("\n\n")
+        .map(|raw_passport| Passport::new(raw_passport, validate))
+        .collect();
 
-            entries
-                .iter()
-                .zip(validators)
-                .all(|(entry, validate)| validate(entry))
-        })
-        .count()
+    passports.iter().filter(|p| p.is_valid()).count()
 }
 
 fn validate_passport_id(value: &str) -> bool {
@@ -170,12 +146,11 @@ fn validate_height(value: &str) -> bool {
         return false;
     }
 
-    let height: String = value.chars().take(value.len() - 2).collect();
-    let suffix: String = value.chars().skip(value.len() - 2).collect();
+    let (height, suffix) = value.split_at(value.len() - 2);
     let height: Option<u32> = height.parse().ok();
 
     if let Some(height) = height {
-        match suffix.as_str() {
+        match suffix {
             "cm" => height >= 150 && height <= 193,
             "in" => height >= 59 && height <= 76,
             _ => false,
@@ -188,29 +163,27 @@ fn validate_height(value: &str) -> bool {
 #[test]
 fn test_1() {
     let input = include_str!("./input_test.txt").trim();
-    let passports = parse_passports(input);
-    let result = solve_1(&passports);
+    let result = solve_1(&input);
     assert_eq!(result, 2)
 }
 
 #[test]
 fn test_2_invalid() {
     let input = include_str!("./input_invalid_passports.txt").trim();
-    let passports = parse_passports(input);
-    let result = solve_2(&passports);
+    let result = solve_2(&input);
     assert_eq!(result, 0)
 }
 
 #[test]
 fn test_2_valid() {
     let input = include_str!("./input_valid_passports.txt").trim();
-    let passports = parse_passports(input);
-    let result = solve_2(&passports);
+    let result = solve_2(&input);
     assert_eq!(result, 4)
 }
 
 #[test]
 fn test_validate_height() {
+    assert_eq!(validate_height(""), false);
     assert_eq!(validate_height("150cm"), true);
     assert_eq!(validate_height("149cm"), false);
     assert_eq!(validate_height("193cm"), true);
@@ -220,12 +193,14 @@ fn test_validate_height() {
 
 #[test]
 fn test_validate_eye_color() {
+    assert_eq!(validate_height(""), false);
     assert_eq!(validate_eye_color("blu"), true);
     assert_eq!(validate_eye_color("purple"), false);
 }
 
 #[test]
 fn test_validate_issue() {
+    assert_eq!(validate_height(""), false);
     assert_eq!(validate_issue("2010"), true);
     assert_eq!(validate_issue("2009"), false);
     assert_eq!(validate_issue("2020"), true);
@@ -234,6 +209,7 @@ fn test_validate_issue() {
 
 #[test]
 fn test_validate_birth() {
+    assert_eq!(validate_height(""), false);
     assert_eq!(validate_birth("1920"), true);
     assert_eq!(validate_birth("1919"), false);
     assert_eq!(validate_birth("2002"), true);
@@ -242,6 +218,7 @@ fn test_validate_birth() {
 
 #[test]
 fn test_validate_hair_color() {
+    assert_eq!(validate_height(""), false);
     assert_eq!(validate_hair_color("#fffaaa"), true);
     assert_eq!(validate_hair_color("#fafafa"), true);
     assert_eq!(validate_hair_color("#fafafaf"), false);
@@ -253,6 +230,7 @@ fn test_validate_hair_color() {
 
 #[test]
 fn test_validate_expiration() {
+    assert_eq!(validate_height(""), false);
     assert_eq!(validate_expiration("2020"), true);
     assert_eq!(validate_expiration("2019"), false);
     assert_eq!(validate_expiration("2030"), true);
