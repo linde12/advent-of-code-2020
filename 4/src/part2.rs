@@ -1,4 +1,3 @@
-#![feature(trait_alias)]
 use std::collections::HashMap;
 
 struct Passport<'a> {

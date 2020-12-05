@@ -1,6 +1,3 @@
-#![feature(trait_alias)]
-use std::collections::HashMap;
-
 mod part1;
 mod part2;
 
