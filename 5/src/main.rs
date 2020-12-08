@@ -13,7 +13,7 @@ fn main() {
 
     // part 2
     if let Some(result) = part2::solve(input) {
-        println!("part 1 solution: {}", result);
+        println!("part 2 solution: {}", result);
     } else {
         println!("bad input for part 2");
     }
