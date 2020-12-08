@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 
 fn bsp_parse(bp: &mut VecDeque<char>, (lower, upper): (usize, usize)) -> usize {
     if let Some(ch) = bp.pop_front() {
