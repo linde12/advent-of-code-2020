@@ -32,11 +32,11 @@ pub fn solve(input: &str) -> isize {
 
             if instr.op == "jmp" || instr.op == "nop" {
                 if nopsjmps_encountered == prev_encountered {
-                    if instr.op == "jmp" {
-                        instr.op = "nop"
-                    } else if instr.op == "nop" {
-                        instr.op = "jmp"
-                    }
+                    instr.op = match instr.op {
+                        "jmp" => "nop",
+                        "nop" => "jmp",
+                        op => op,
+                    };
                 }
                 nopsjmps_encountered += 1;
             }
